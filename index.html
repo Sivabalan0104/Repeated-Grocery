@@ -3,164 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grocery Tracker - Scan & Edit</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { width: 100%; max-width: 800px; background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h1, h2 { color: #0056b3; text-align: center; }
-        .upload-section { text-align: center; border: 2px dashed #007bff; padding: 30px; border-radius: 8px; margin-bottom: 20px; }
-        button { background-color: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; margin: 5px; }
-        button:hover { background-color: #0056b3; }
-        button:disabled { background-color: #cccccc; cursor: not-allowed; }
-        button.save-btn { background-color: #28a745; }
-        button.save-btn:hover { background-color: #218838; }
-        button.delete-btn { background-color: #dc3545; padding: 5px 10px; font-size: 12px; }
-        #status { text-align: center; font-weight: bold; margin: 15px 0; color: #17a2b8; min-height: 20px; }
-        #editor-div { display: none; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #007bff; color: white; }
-        input[type="text"], input[type="number"] { width: 95%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-    </style>
-    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <title>Grocery Expense Tracker</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-    <h1>🛒 Grocery Tracker</h1>
-
     <div class="container">
-        <h2>1. Scan Receipt</h2>
-        <div class="upload-section">
-            <input type="file" id="receipt-upload" accept="image/*">
-            <button id="process-button" onclick="processReceipt()">Extract Items</button>
+        <header>
+            <h1>Grocery Expense Tracker</h1>
+            <p>Track your grocery purchases easily</p>
+        </header>
+
+        <div class="input-section">
+            <h2>Add Groceries</h2>
+            
+            <!-- Receipt Upload -->
+            <div class="upload-section">
+                <h3>Option 1: Upload Receipt</h3>
+                <input type="file" id="receiptUpload" accept="image/*" />
+                <button id="processReceipt">Process Receipt</button>
+                <div id="ocrStatus"></div>
+            </div>
+
+            <!-- Manual Entry -->
+            <div class="manual-entry">
+                <h3>Option 2: Manual Entry</h3>
+                <form id="manualForm">
+                    <input type="text" id="itemName" placeholder="Item name" required>
+                    <input type="number" id="quantity" placeholder="Quantity" min="1" value="1" required>
+                    <input type="number" id="price" placeholder="Price" step="0.01" min="0" required>
+                    <input type="date" id="purchaseDate" required>
+                    <input type="text" id="store" placeholder="Store name">
+                    <button type="submit">Add Item</button>
+                </form>
+            </div>
+
+            <!-- Barcode Scanner (placeholder) -->
+            <div class="barcode-section">
+                <h3>Option 3: Barcode Scanner</h3>
+                <button id="startScanner">Start Scanner</button>
+                <div id="scannerContainer"></div>
+            </div>
         </div>
-        <div id="status"></div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <h2>View Purchases</h2>
+            <div class="filters">
+                <select id="timeFilter">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+                
+                <div id="customDateRange" style="display: none;">
+                    <input type="date" id="startDate">
+                    <input type="date" id="endDate">
+                </div>
+                
+                <input type="text" id="itemFilter" placeholder="Filter by item name">
+                <button id="applyFilters">Apply Filters</button>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-section">
+            <h2>Summary</h2>
+            <div id="summaryStats">
+                <div class="stat-card">
+                    <h3>Total Spent</h3>
+                    <p id="totalSpent">$0.00</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Items Purchased</h3>
+                    <p id="totalItems">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Average per Item</h3>
+                    <p id="avgPerItem">$0.00</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items List -->
+        <div class="items-section">
+            <h2>Grocery Items</h2>
+            <div id="itemsList"></div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-section">
+            <h2>Spending Analysis</h2>
+            <canvas id="spendingChart"></canvas>
+        </div>
     </div>
 
-    <div class="container" id="editor-div">
-        <h2>2. Edit & Save Items</h2>
-        <p>Review the extracted items below. Correct any mistakes and delete non-grocery rows before saving.</p>
-        <div id="editable-table"></div>
-        <button id="save-button" class="save-btn" onclick="saveData()">Save Corrected Items to Google Sheet</button>
-    </div>
-
-    <script>
-        // ❗️ PASTE YOUR GOOGLE APPS SCRIPT URL HERE
-        const SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
-
-        const processButton = document.getElementById('process-button');
-        const uploadInput = document.getElementById('receipt-upload');
-        const statusDiv = document.getElementById('status');
-        const editorDiv = document.getElementById('editor-div');
-        const editableTableDiv = document.getElementById('editable-table');
-        const saveButton = document.getElementById('save-button');
-
-        async function processReceipt() {
-            const file = uploadInput.files[0];
-            if (!file) {
-                statusDiv.textContent = 'Please select an image file first!';
-                return;
-            }
-
-            statusDiv.textContent = 'Scanning receipt... This may take a moment. ⏳';
-            processButton.disabled = true;
-            editorDiv.style.display = 'none';
-
-            try {
-                const { data: { text } } = await Tesseract.recognize(file, 'eng');
-                generateEditableTable(text);
-                statusDiv.textContent = 'Scan complete. Please review the items below.';
-                editorDiv.style.display = 'block';
-            } catch (error) {
-                console.error(error);
-                statusDiv.textContent = 'An error occurred during scanning.';
-            } finally {
-                processButton.disabled = false;
-            }
-        }
-
-        function generateEditableTable(text) {
-            const lines = text.split('\n');
-            const itemRegex = /^(.*?)\s+.*?([\d,]+\.\d{2})$/;
-            let tableHTML = `
-                <table>
-                    <thead>
-                        <tr><th>Item Name</th><th>Price (£)</th><th>Action</th></tr>
-                    </thead>
-                    <tbody>`;
-            
-            lines.forEach(line => {
-                const match = line.match(itemRegex);
-                if (match) {
-                    let name = match[1].trim();
-                    let price = parseFloat(match[2].replace(',', ''));
-                    // Basic cleanup
-                    name = name.replace(/[^a-zA-Z0-9\s-]/g, '').trim(); 
-                    
-                    if (name && !isNaN(price) && price > 0) {
-                        tableHTML += `
-                            <tr>
-                                <td><input type="text" value="${name}"></td>
-                                <td><input type="number" step="0.01" value="${price.toFixed(2)}"></td>
-                                <td><button class="delete-btn" onclick="deleteRow(this)">Delete</button></td>
-                            </tr>`;
-                    }
-                }
-            });
-            
-            tableHTML += `</tbody></table>`;
-            editableTableDiv.innerHTML = tableHTML;
-        }
-
-        function deleteRow(button) {
-            // Get the row (which is the button's grandparent: button -> td -> tr) and remove it
-            button.closest('tr').remove();
-        }
-
-        async function saveData() {
-            statusDiv.textContent = 'Saving to Google Sheet...';
-            saveButton.disabled = true;
-
-            const items = [];
-            const rows = editableTableDiv.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {
-                const nameInput = row.querySelector('input[type="text"]');
-                const priceInput = row.querySelector('input[type="number"]');
-                if (nameInput && priceInput) {
-                    items.push({
-                        name: nameInput.value.toUpperCase(),
-                        price: parseFloat(priceInput.value),
-                        date: new Date().toISOString()
-                    });
-                }
-            });
-
-            if (items.length === 0) {
-                statusDiv.textContent = 'No items to save.';
-                saveButton.disabled = false;
-                return;
-            }
-
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ items: items })
-                });
-                const result = await response.json();
-                if (result.result === 'success') {
-                    statusDiv.textContent = `Successfully saved ${items.length} items to your sheet!`;
-                    editorDiv.style.display = 'none'; // Hide editor after successful save
-                } else {
-                    throw new Error(result.message || 'Unknown error from Google Script.');
-                }
-            } catch (error) {
-                console.error('Save Error:', error);
-                statusDiv.textContent = 'Error saving data. Please check your connection or script URL.';
-            } finally {
-                saveButton.disabled = false;
-            }
-        }
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
