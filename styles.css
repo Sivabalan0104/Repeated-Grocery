@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocery Expense Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Grocery Expense Tracker</h1>
+            <p>Track your grocery purchases easily</p>
+        </header>
+
+        <div class="input-section">
+            <h2>Add Groceries</h2>
+            
+            <!-- Receipt Upload -->
+            <div class="upload-section">
+                <h3>Option 1: Upload Receipt</h3>
+                <input type="file" id="receiptUpload" accept="image/*" />
+                <button id="processReceipt">Process Receipt</button>
+                <div id="ocrStatus"></div>
+            </div>
+
+            <!-- Manual Entry -->
+            <div class="manual-entry">
+                <h3>Option 2: Manual Entry</h3>
+                <form id="manualForm">
+                    <input type="text" id="itemName" placeholder="Item name" required>
+                    <input type="number" id="quantity" placeholder="Quantity" min="1" value="1" required>
+                    <input type="number" id="price" placeholder="Price" step="0.01" min="0" required>
+                    <input type="date" id="purchaseDate" required>
+                    <input type="text" id="store" placeholder="Store name">
+                    <button type="submit">Add Item</button>
+                </form>
+            </div>
+
+            <!-- Barcode Scanner (placeholder) -->
+            <div class="barcode-section">
+                <h3>Option 3: Barcode Scanner</h3>
+                <button id="startScanner">Start Scanner</button>
+                <div id="scannerContainer"></div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <h2>View Purchases</h2>
+            <div class="filters">
+                <select id="timeFilter">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+                
+                <div id="customDateRange" style="display: none;">
+                    <input type="date" id="startDate">
+                    <input type="date" id="endDate">
+                </div>
+                
+                <input type="text" id="itemFilter" placeholder="Filter by item name">
+                <button id="applyFilters">Apply Filters</button>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-section">
+            <h2>Summary</h2>
+            <div id="summaryStats">
+                <div class="stat-card">
+                    <h3>Total Spent</h3>
+                    <p id="totalSpent">$0.00</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Items Purchased</h3>
+                    <p id="totalItems">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Average per Item</h3>
+                    <p id="avgPerItem">$0.00</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items List -->
+        <div class="items-section">
+            <h2>Grocery Items</h2>
+            <div id="itemsList"></div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-section">
+            <h2>Spending Analysis</h2>
+            <canvas id="spendingChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
