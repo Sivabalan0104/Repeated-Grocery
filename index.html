@@ -3,96 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grocery Tracker</title>
+    <title>Grocery Tracker - Scan & Edit</title>
     <style>
-        /* --- CSS for Styling --- */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1, h2 {
-            color: #0056b3;
-        }
-        .container {
-            width: 100%;
-            max-width: 800px;
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .upload-section {
-            text-align: center;
-            border: 2px dashed #007bff;
-            padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        input[type="file"] {
-            margin-bottom: 15px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .filters {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .filters button {
-            margin: 0 5px;
-            background-color: #6c757d;
-        }
-        .filters button.active {
-            background-color: #28a745;
-        }
-        #status {
-            text-align: center;
-            font-weight: bold;
-            margin: 15px 0;
-            color: #dc3545;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        td:last-child {
-            text-align: right;
-            font-weight: bold;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 800px; background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1, h2 { color: #0056b3; text-align: center; }
+        .upload-section { text-align: center; border: 2px dashed #007bff; padding: 30px; border-radius: 8px; margin-bottom: 20px; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; margin: 5px; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        button.save-btn { background-color: #28a745; }
+        button.save-btn:hover { background-color: #218838; }
+        button.delete-btn { background-color: #dc3545; padding: 5px 10px; font-size: 12px; }
+        #status { text-align: center; font-weight: bold; margin: 15px 0; color: #17a2b8; min-height: 20px; }
+        #editor-div { display: none; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        input[type="text"], input[type="number"] { width: 95%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
     </style>
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 </head>
@@ -101,200 +29,138 @@
     <h1>🛒 Grocery Tracker</h1>
 
     <div class="container">
-        <h2>1. Upload Receipt</h2>
+        <h2>1. Scan Receipt</h2>
         <div class="upload-section">
             <input type="file" id="receipt-upload" accept="image/*">
-            <button id="process-button" onclick="processReceipt()">Process Receipt</button>
+            <button id="process-button" onclick="processReceipt()">Extract Items</button>
         </div>
         <div id="status"></div>
     </div>
 
-    <div class="container">
-        <h2>2. Tracked Items</h2>
-        <div class="filters">
-            <button onclick="renderItems('all')" class="active">All Time</button>
-            <button onclick="renderItems('monthly')">This Month</button>
-            <button onclick="renderItems('weekly')">This Week</button>
-            <button onclick="renderItems('daily')">Today</button>
-        </div>
-        <div id="results-table">
-            </div>
+    <div class="container" id="editor-div">
+        <h2>2. Edit & Save Items</h2>
+        <p>Review the extracted items below. Correct any mistakes and delete non-grocery rows before saving.</p>
+        <div id="editable-table"></div>
+        <button id="save-button" class="save-btn" onclick="saveData()">Save Corrected Items to Google Sheet</button>
     </div>
 
     <script>
-    // --- JavaScript for Functionality ---
+        // ❗️ PASTE YOUR GOOGLE APPS SCRIPT URL HERE
+        const SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 
-    const processButton = document.getElementById('process-button');
-    const uploadInput = document.getElementById('receipt-upload');
-    const statusDiv = document.getElementById('status');
-    const resultsTableDiv = document.getElementById('results-table');
-    let currentFilter = 'all';
+        const processButton = document.getElementById('process-button');
+        const uploadInput = document.getElementById('receipt-upload');
+        const statusDiv = document.getElementById('status');
+        const editorDiv = document.getElementById('editor-div');
+        const editableTableDiv = document.getElementById('editable-table');
+        const saveButton = document.getElementById('save-button');
 
-    // **1. Process the uploaded receipt image**
-    async function processReceipt() {
-        const file = uploadInput.files[0];
-        if (!file) {
-            statusDiv.textContent = 'Please select an image file first!';
-            return;
-        }
-
-        statusDiv.textContent = 'Processing... This may take a moment. ⏳';
-        processButton.disabled = true;
-
-        try {
-            // Use Tesseract.js to recognize text from the image
-            const { data: { text } } = await Tesseract.recognize(file, 'eng');
-            const items = parseReceiptText(text);
-            
-            if (items.length === 0) {
-                statusDiv.textContent = 'Could not find any items. Please try a clearer image or a different receipt format.';
-            } else {
-                saveItems(items);
-                renderItems(currentFilter); // Re-render the table with the current filter
-                statusDiv.textContent = `Successfully added ${items.length} items!`;
+        async function processReceipt() {
+            const file = uploadInput.files[0];
+            if (!file) {
+                statusDiv.textContent = 'Please select an image file first!';
+                return;
             }
 
-        } catch (error) {
-            console.error(error);
-            statusDiv.textContent = 'An error occurred during processing.';
-        } finally {
-            processButton.disabled = false;
-            uploadInput.value = ''; // Reset file input
+            statusDiv.textContent = 'Scanning receipt... This may take a moment. ⏳';
+            processButton.disabled = true;
+            editorDiv.style.display = 'none';
+
+            try {
+                const { data: { text } } = await Tesseract.recognize(file, 'eng');
+                generateEditableTable(text);
+                statusDiv.textContent = 'Scan complete. Please review the items below.';
+                editorDiv.style.display = 'block';
+            } catch (error) {
+                console.error(error);
+                statusDiv.textContent = 'An error occurred during scanning.';
+            } finally {
+                processButton.disabled = false;
+            }
         }
-    }
 
-    // **2. Parse the raw text from OCR to find items and prices**
-    // This is a simplified parser and might need adjustments for different receipt formats.
-    function parseReceiptText(text) {
-        const items = [];
-        const lines = text.split('\n');
-        // Regex to find lines with a description and a price (e.g., "ITEM NAME 1.23")
-        const itemRegex = /^(.*?)\s+([\d,]+\.\d{2})$/;
+        function generateEditableTable(text) {
+            const lines = text.split('\n');
+            const itemRegex = /^(.*?)\s+.*?([\d,]+\.\d{2})$/;
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr><th>Item Name</th><th>Price (£)</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>`;
+            
+            lines.forEach(line => {
+                const match = line.match(itemRegex);
+                if (match) {
+                    let name = match[1].trim();
+                    let price = parseFloat(match[2].replace(',', ''));
+                    // Basic cleanup
+                    name = name.replace(/[^a-zA-Z0-9\s-]/g, '').trim(); 
+                    
+                    if (name && !isNaN(price) && price > 0) {
+                        tableHTML += `
+                            <tr>
+                                <td><input type="text" value="${name}"></td>
+                                <td><input type="number" step="0.01" value="${price.toFixed(2)}"></td>
+                                <td><button class="delete-btn" onclick="deleteRow(this)">Delete</button></td>
+                            </tr>`;
+                    }
+                }
+            });
+            
+            tableHTML += `</tbody></table>`;
+            editableTableDiv.innerHTML = tableHTML;
+        }
 
-        lines.forEach(line => {
-            const match = line.match(itemRegex);
-            if (match) {
-                // We found a potential item
-                let name = match[1].trim();
-                // Clean up common OCR mistakes or irrelevant words
-                name = name.replace(/[^a-zA-Z\s]/g, '').trim(); // Remove special chars
-                
-                const price = parseFloat(match[2].replace(',', '')); // Handle prices like "1,23.45"
+        function deleteRow(button) {
+            // Get the row (which is the button's grandparent: button -> td -> tr) and remove it
+            button.closest('tr').remove();
+        }
 
-                // Basic validation
-                if (name && !isNaN(price) && price > 0) {
+        async function saveData() {
+            statusDiv.textContent = 'Saving to Google Sheet...';
+            saveButton.disabled = true;
+
+            const items = [];
+            const rows = editableTableDiv.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const nameInput = row.querySelector('input[type="text"]');
+                const priceInput = row.querySelector('input[type="number"]');
+                if (nameInput && priceInput) {
                     items.push({
-                        name: name.toUpperCase(),
-                        price: price,
-                        date: new Date().toISOString() // Add timestamp to each purchase
+                        name: nameInput.value.toUpperCase(),
+                        price: parseFloat(priceInput.value),
+                        date: new Date().toISOString()
                     });
                 }
-            }
-        });
-        return items;
-    }
+            });
 
-    // **3. Save items to the browser's local storage**
-    function saveItems(newItems) {
-        let existingItems = JSON.parse(localStorage.getItem('groceryItems')) || [];
-        existingItems.push(...newItems);
-        localStorage.setItem('groceryItems', JSON.stringify(existingItems));
-    }
+            if (items.length === 0) {
+                statusDiv.textContent = 'No items to save.';
+                saveButton.disabled = false;
+                return;
+            }
 
-    // **4. Render the items in a table, with filtering and aggregation**
-    function renderItems(filter) {
-        currentFilter = filter;
-        
-        // Update active button style
-        document.querySelectorAll('.filters button').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.textContent.toLowerCase().includes(filter)) {
-                btn.classList.add('active');
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ items: items })
+                });
+                const result = await response.json();
+                if (result.result === 'success') {
+                    statusDiv.textContent = `Successfully saved ${items.length} items to your sheet!`;
+                    editorDiv.style.display = 'none'; // Hide editor after successful save
+                } else {
+                    throw new Error(result.message || 'Unknown error from Google Script.');
+                }
+            } catch (error) {
+                console.error('Save Error:', error);
+                statusDiv.textContent = 'Error saving data. Please check your connection or script URL.';
+            } finally {
+                saveButton.disabled = false;
             }
-        });
-
-        let allItems = JSON.parse(localStorage.getItem('groceryItems')) || [];
-        
-        // Filter items based on the selected period
-        const now = new Date();
-        const filteredItems = allItems.filter(item => {
-            const itemDate = new Date(item.date);
-            if (filter === 'all') return true;
-            if (filter === 'daily') {
-                return itemDate.toDateString() === now.toDateString();
-            }
-            if (filter === 'weekly') {
-                const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                return itemDate >= oneWeekAgo;
-            }
-            if (filter === 'monthly') {
-                return itemDate.getFullYear() === now.getFullYear() && itemDate.getMonth() === now.getMonth();
-            }
-            return false;
-        });
-
-        if (filteredItems.length === 0) {
-            resultsTableDiv.innerHTML = `<p>No items found for this period.</p>`;
-            return;
         }
-
-        // Aggregate items: sum up quantities and total cost for each unique item
-        const summary = filteredItems.reduce((acc, item) => {
-            if (!acc[item.name]) {
-                acc[item.name] = { count: 0, total: 0 };
-            }
-            acc[item.name].count++;
-            acc[item.name].total += item.price;
-            return acc;
-        }, {});
-
-        // Create and display the HTML table
-        let tableHTML = `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Item Name</th>
-                        <th>Quantity</th>
-                        <th>Total Cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        let grandTotal = 0;
-        // Sort items alphabetically for consistency
-        const sortedItems = Object.keys(summary).sort();
-
-        for (const itemName of sortedItems) {
-            const itemData = summary[itemName];
-            grandTotal += itemData.total;
-            tableHTML += `
-                <tr>
-                    <td>${itemName}</td>
-                    <td>${itemData.count}</td>
-                    <td>£${itemData.total.toFixed(2)}</td>
-                </tr>
-            `;
-        }
-        
-        tableHTML += `
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th colspan="2">Grand Total</th>
-                        <th>£${grandTotal.toFixed(2)}</th>
-                    </tr>
-                </tfoot>
-            </table>
-        `;
-
-        resultsTableDiv.innerHTML = tableHTML;
-    }
-
-    // Initial render when the page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        renderItems('all');
-    });
-
     </script>
 </body>
 </html>
